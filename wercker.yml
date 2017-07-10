@@ -23,9 +23,14 @@ build:
   # http://devcenter.wercker.com/docs/steps/index.html
   steps:
     # A step that executes `npm install` command
-    - npm-install:
-      package: newman
-      global: true
+    #- npm-install:
+    #  package: newman
+    #  global: true
+    - script:
+      name: npm install newman
+      code: |
+        mkdir -p "$WERCKER_CACHE_DIR/wercker/npm"
+        npm install --cache "$WERCKER_CACHE_DIR/wercker/npm" --global newman
     
     # A custom script step, name value is used in the UI
     # and the code value contains the command that get executed
