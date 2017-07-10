@@ -1,0 +1,66 @@
+{
+	"variables": [],
+	"info": {
+		"name": "cookie-jar",
+		"_postman_id": "6d65bc73-86a9-82e4-2d96-6f461f78e791",
+		"description": "",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Set Cookie",
+			"request": {
+				"url": {
+					"raw": "https://postman-echo.com/cookies/set?foo={{cookieValue}}",
+					"protocol": "https",
+					"host": [
+						"postman-echo",
+						"com"
+					],
+					"path": [
+						"cookies",
+						"set"
+					],
+					"query": [
+						{
+							"key": "foo",
+							"value": "{{cookieValue}}",
+							"equals": true,
+							"description": ""
+						}
+					],
+					"variable": []
+				},
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"description": "A request to set a cookie `foo` to a value `bar` using Postman Echo as an example."
+			},
+			"response": []
+		},
+		{
+			"name": "Verify cookie",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"tests[\"Status code is 200\"] = responseCode.code === 200;",
+							"var cookieValue = postman.getEnvironmentVariable(\"cookieValue\");",
+							"tests[\"Cookie `foo` exists and has the value \"+ cookieValue] = postman.getResponseCookie(\"foo\").value === cookieValue;"
+						]
+					}
+				}
+			],
+			"request": {
+				"url": "https://postman-echo.com/cookies",
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"description": "A request to validate the presence of the cookie `foo`, with value `bar`, using Postman Echo."
+			},
+			"response": []
+		}
+	]
+}
