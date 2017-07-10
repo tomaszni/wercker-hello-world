@@ -43,5 +43,5 @@ build:
     - script:
         name: run newman/postman collection
         code: |
-          echo "Running newman (help for now)"
-          newman run -h
+          echo "Running newman"
+          newman run -e "cookie env.postman_environment.json" cookie-jar.postman_collection.json
