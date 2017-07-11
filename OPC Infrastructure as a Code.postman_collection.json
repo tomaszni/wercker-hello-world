@@ -1,0 +1,265 @@
+{
+	"variables": [],
+	"info": {
+		"name": "OPC Infrastructure as a Code",
+		"_postman_id": "a641bb94-9fd0-0736-69b1-482a283b36c5",
+		"description": "CanDo Workshop 2 - Infrastructure as a Code\n\nA sequence to create simple IaaS instance using Orchestration v2.\nRequires global/env variables set:\nbaseURL,\ndomain,\nuser,\npassword,\nprefix,\nsshPublicKey",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authenticate",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"tests[\"Status code is 204\"] = responseCode.code === 204;",
+							"",
+							"var cookie = postman.getResponseCookie(\"nimbula\");",
+							"",
+							"tests[\"Cookie 'nimbula' exists and has a value\"] = cookie !== undefined && cookie.value !== '';",
+							"",
+							"postman.setEnvironmentVariable(\"cookie\", cookie.value);"
+						]
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"var prefix = postman.getEnvironmentVariable(\"prefix\");",
+							"if( prefix === undefined || prefix === '' ) {",
+							"    console.log(\"prefix is not set\")",
+							"    throw \"prefix not set\";",
+							"}",
+							"",
+							"var sshKey = postman.getEnvironmentVariable(\"sshPublicKey\");",
+							"if( sshKey === undefined || sshKey === '' ) {",
+							"    console.log(\"sshPublicKey is not set\")",
+							"    throw \"sshPublicKey not set\";",
+							"}"
+						]
+					}
+				}
+			],
+			"request": {
+				"url": "{{baseURL}}/authenticate/",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"user\":\"/Compute-{{domain}}/{{user}}\",\"password\":\"{{password}}\"}"
+				},
+				"description": "Warrning\n\nAuthentication cookie returns in cookie called nimbula.\nYou need to enable postman interceptor to handle cookies."
+			},
+			"response": []
+		},
+		{
+			"name": "Add Orchestration",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"tests[\"Status code is 201\"] = responseCode.code === 201;"
+						]
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"var prefix = postman.getEnvironmentVariable(\"prefix\");",
+							"if( prefix === undefined || prefix === '' ) {",
+							"    console.log(\"prefix is not set\")",
+							"    throw \"prefix not set\";",
+							"}",
+							"",
+							"var sshKey = postman.getEnvironmentVariable(\"sshPublicKey\");",
+							"if( sshKey === undefined || sshKey === '' ) {",
+							"    console.log(\"sshPublicKey is not set\")",
+							"    throw \"sshPublicKey not set\";",
+							"}"
+						]
+					}
+				}
+			],
+			"request": {
+				"url": "{{baseURL}}/platform/v1/orchestration/",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					},
+					{
+						"key": "Cookie",
+						"value": "nimbula={{cookie}}",
+						"description": ""
+					},
+					{
+						"key": "Accept",
+						"value": "application/oracle-compute-v3+json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"description\": \"Simple orchestration with an instance, storage volumes, ssh key, and a security list and rule\",\r\n  \"name\": \"/Compute-{{domain}}/{{user}}/{{prefix}}_orchestration\",\r\n  \"desired_state\": \"inactive\",\r\n  \"objects\": [\r\n    {\r\n      \"type\": \"SSHKey\",\r\n      \"label\": \"{{prefix}}_ssh_key\",\r\n      \"template\": {\r\n        \"enabled\": true,\r\n        \"key\": \"{{sshPublicKey}}\",\r\n        \"name\": \"/Compute-{{domain}}/{{user}}/{{prefix}}_ssh_key\"\r\n       }\r\n    },\r\n    {\r\n      \"type\": \"SecList\",\r\n      \"label\": \"{{prefix}}_seclist\",\r\n      \"template\": {\r\n        \"name\": \"/Compute-{{domain}}/{{user}}/{{prefix}}_seclist\"\r\n      }\r\n    },\r\n    {\r\n     \"type\": \"SecRule\",\r\n     \"label\": \"{{prefix}}_allow_ssh\",\r\n     \"template\":\r\n     {\r\n       \"name\": \"/Compute-{{domain}}/{{user}}/{{prefix}}_allow_ssh\",\r\n       \"application\": \"/oracle/public/ssh\",\r\n       \"src_list\": \"seciplist:/oracle/public/public-internet\",\r\n       \"dst_list\": \"seclist:{{{{prefix}}_seclist:name}}\",\r\n       \"action\": \"PERMIT\"\r\n      }\r\n    },\r\n    {\r\n      \"type\": \"StorageVolume\",\r\n      \"label\": \"{{prefix}}_boot_volume\",\r\n      \"description\": \"Boot disk for your instance\",\r\n      \"persistent\": true,\r\n      \"template\": {\r\n        \"name\": \"/Compute-{{domain}}/{{user}}/{{prefix}}_BootVolume\",\r\n        \"bootable\": true,\r\n        \"imagelist\": \"/oracle/public/OL_6.7_3GB-1.3.0-20160411\",\r\n        \"properties\": [\r\n          \"/oracle/public/storage/default\"\r\n         ],\r\n         \"size\": \"4G\"\r\n      }\r\n    },\r\n    {\r\n      \"type\": \"StorageVolume\",\r\n      \"label\": \"{{prefix}}_tmp_data_volume\",\r\n      \"description\": \"Tmp data disk for your instance\",\r\n      \"persistent\": false,\r\n      \"template\": {\r\n        \"name\": \"/Compute-{{domain}}/{{user}}/{{prefix}}_DataVolume\",\r\n        \"properties\": [\r\n          \"/oracle/public/storage/default\"\r\n         ],\r\n         \"size\": \"2G\"\r\n      }\r\n    },\r\n    {\r\n      \"type\": \"IPReservation\",\r\n      \"label\": \"{{prefix}}_ip_reservation\",\r\n      \"description\": \"IP reservation for your instance\",\r\n      \"persistent\": true,\r\n      \"template\": {\r\n        \"name\": \"/Compute-{{domain}}/{{user}}/{{prefix}}_ip_reservation\",\r\n        \"parentpool\": \"/oracle/public/ippool\",\r\n        \"permanent\": true\r\n      }\r\n    },\r\n    {\r\n      \"type\": \"Instance\",\r\n      \"description\": \"demo instance\",\r\n      \"label\": \"{{prefix}}_demo_instance\",\r\n      \"template\": {\r\n        \"label\": \"{{prefix}}_demo_instance\",\r\n        \"name\": \"/Compute-{{domain}}/{{user}}/{{prefix}}_demo_instance\",\r\n        \"shape\": \"oc3\",\r\n        \"networking\": {\r\n          \"eth0\": {\r\n            \"seclists\": [ \"{{{{prefix}}_seclist:name}}\" ],\r\n            \"nat\": \"ipreservation:{{{{prefix}}_ip_reservation:name}}\"\r\n          }\r\n        },\r\n        \"storage_attachments\": [\r\n        {\r\n          \"index\": 1,\r\n          \"volume\": \"{{{{prefix}}_boot_volume:name}}\"\r\n        },\r\n        {\r\n          \"index\": 2,\r\n          \"volume\": \"{{{{prefix}}_tmp_data_volume:name}}\"\r\n        }\r\n        ],\r\n      \"boot_order\": [1],\r\n      \"sshkeys\": [\r\n        \"{{{{prefix}}_ssh_key:name}}\"\r\n        ]\r\n      }\r\n    }\r\n  ],\r\n  \"tags\": [\"sample\",\"CanDo2\",\"{{prefix}}\"]\r\n}\r\n"
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Activate Orchestration",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"tests[\"Status code is 200\"] = responseCode.code === 200;"
+						]
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"var prefix = postman.getEnvironmentVariable(\"prefix\");",
+							"if( prefix === undefined || prefix === '' ) {",
+							"    console.log(\"prefix is not set\")",
+							"    throw \"prefix not set\";",
+							"}",
+							"",
+							"var sshKey = postman.getEnvironmentVariable(\"sshPublicKey\");",
+							"if( sshKey === undefined || sshKey === '' ) {",
+							"    console.log(\"sshPublicKey is not set\")",
+							"    throw \"sshPublicKey not set\";",
+							"}"
+						]
+					}
+				}
+			],
+			"request": {
+				"url": {
+					"raw": "{{baseURL}}/platform/v1/orchestration/Compute-{{domain}}/{{user}}/{{prefix}}_orchestration?desired_state=active",
+					"host": [
+						"{{baseURL}}"
+					],
+					"path": [
+						"platform",
+						"v1",
+						"orchestration",
+						"Compute-{{domain}}",
+						"{{user}}",
+						"{{prefix}}_orchestration"
+					],
+					"query": [
+						{
+							"key": "desired_state",
+							"value": "active",
+							"equals": true,
+							"description": ""
+						}
+					],
+					"variable": []
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					},
+					{
+						"key": "Cookie",
+						"value": "nimbula={{cookie}}",
+						"description": ""
+					},
+					{
+						"key": "Accept",
+						"value": "application/oracle-compute-v3+json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Get Orchestration details",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"tests[\"Status code is 200\"] = responseCode.code === 200;",
+							"console.log(responseBody);"
+						]
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"var prefix = postman.getEnvironmentVariable(\"prefix\");",
+							"if( prefix === undefined || prefix === '' ) {",
+							"    console.log(\"prefix is not set\")",
+							"    throw \"prefix not set\";",
+							"}",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"url": "{{baseURL}}/platform/v1/orchestration/Compute-{{domain}}/{{user}}/{{prefix}}_orchestration",
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					},
+					{
+						"key": "Cookie",
+						"value": "nimbula={{cookie}}",
+						"description": ""
+					},
+					{
+						"key": "Accept",
+						"value": "application/oracle-compute-v3+json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"description": ""
+			},
+			"response": []
+		}
+	]
+}
