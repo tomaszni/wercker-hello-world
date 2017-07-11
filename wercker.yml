@@ -33,15 +33,15 @@ build:
         npm install --cache "$WERCKER_CACHE_DIR/wercker/npm" --global newman
     
     # A custom script step, name value is used in the UI
-    # and the code value contains the command that get executed 
+    # and the code value contains the command that get executed
     - script:
-        name: merge env into postman/newman env
+        name: echo nodejs information
         code: |
-          echo "Merging environment variables into postman/newman env"
-          node rewrite-env-with-envs.js ./env.json > env-run.json
-
+          echo "node version $(node -v) running"
+          echo "npm version $(npm -v) running"
+    
     - script:
         name: run newman/postman collection
         code: |
           echo "Running newman"
-          newman run --bail --color -e env-run.json 'OPC Infrastructure as a Code.postman_collection.json'
+          newman run -e "cookie env.postman_environment.json" cookie-jar.postman_collection.json
